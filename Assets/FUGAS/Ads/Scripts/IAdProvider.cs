@@ -1,7 +1,7 @@
 ﻿using System;
 using GoogleMobileAds.Api;
 
-namespace Assets.FUGAS.Ads
+namespace Assets.FUGAS.Ads.Scripts
 {
     public interface IAdProvider
     {

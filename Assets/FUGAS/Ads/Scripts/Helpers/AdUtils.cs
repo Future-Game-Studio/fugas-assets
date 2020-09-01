@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Assets.FUGAS.Ads.Helpers
+namespace Assets.FUGAS.Ads.Scripts.Helpers
 {
     public static class AdUtils
     {

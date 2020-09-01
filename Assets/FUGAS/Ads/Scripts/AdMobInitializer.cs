@@ -1,9 +1,9 @@
-﻿using GoogleMobileAds.Api;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using GoogleMobileAds.Api;
 using UnityEngine;
 
-namespace Assets.FUGAS.Ads
+namespace Assets.FUGAS.Ads.Scripts
 {
     public class AdMobInitializer : MonoBehaviour
     {

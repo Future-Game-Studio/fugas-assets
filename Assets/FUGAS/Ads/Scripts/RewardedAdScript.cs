@@ -1,31 +1,31 @@
 ﻿using System;
-using Assets.FUGAS.Ads.Helpers;
+using Assets.FUGAS.Ads.Scripts.Helpers;
 using GoogleMobileAds.Api;
 using UnityEngine;
 
-namespace Assets.FUGAS.Ads
+namespace Assets.FUGAS.Ads.Scripts
 {
-    public class InterstitialAdScript : MonoBehaviour, IAdProvider
+    public class RewardedAdScript : MonoBehaviour, IAdProvider
     {
         public AdvertisementSettings Settings;
 
-        private InterstitialAd _view;
+        private RewardedAd _view;
         private string _isTest;
-        private bool _viewUsed;
         private Action<AdRequest.Builder> _configuringAdRequest;
-        private Action<InterstitialAd> _configuringAdView;
+        private Action<RewardedAd> _configuringAdView;
+        private bool _viewUsed;
 
-        void Start()
+        public void Start()
         {
             AdMobInitializer.EnsureReady();
-            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<InterstitialAdScript>();
-            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<InterstitialAdScript, InterstitialAd>();
+            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<RewardedAdScript>();
+            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<RewardedAdScript, RewardedAd>();
 
             string testUnitId;
 #if UNITY_ANDROID
-            testUnitId = "ca-app-pub-3940256099942544/1033173712";
+            testUnitId = "ca-app-pub-3940256099942544/5224354917";
 #elif UNITY_IPHONE
-            testUnitId = "ca-app-pub-3940256099942544/4411468910";
+            testUnitId = "ca-app-pub-3940256099942544/1712485313";
 #else
             testUnitId = "unexpected_platform";
 #endif
@@ -33,11 +33,11 @@ namespace Assets.FUGAS.Ads
 
             _isTest = AdUtils.IsTestMode(settings.TestMode)
                 ? testUnitId // Google's Sample TestId
-                : settings.InterstitialUnitId;
+                : settings.RewardedUnitId; 
             RequestAdLoad();
         }
-
-        public InterstitialAd GetView() => _view;
+         
+        public RewardedAd GetView() => _view;
 
         public void RequestAdLoad()
         {
@@ -46,12 +46,11 @@ namespace Assets.FUGAS.Ads
                 // acts like cached ad => less data usage
                 return;
             }
+            _view = new RewardedAd(_isTest);
 
-            // cleanup before reusing
-            _view?.Destroy();
-            _viewUsed = false;
-            _view = new InterstitialAd(_isTest);
-
+            // Called when the user should be rewarded for interacting with the ad.
+            _view.OnUserEarnedReward += HandleUserEarnedReward;
+            _view.OnPaidEvent += HandleOnPaidEvent;
             BindEvents();
             _configuringAdView?.Invoke(_view);
 
@@ -59,15 +58,26 @@ namespace Assets.FUGAS.Ads
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
             var request = builder.Build();
-            // Load the interstitial with the request.
+            // Load the rewarded ad with the request.
             _view.LoadAd(request);
         }
 
-        public void OnDestroy()
+        private void HandleUserEarnedReward(object sender, Reward e)
         {
-            _view?.Destroy();
+            print("User earned reward event received");
         }
-         
+
+        private void HandleOnPaidEvent(object sender, AdValueEventArgs e)
+        {
+            print("HandlePaid event received");
+        }
+
+        public void OnShowRewardClick()
+        {
+            ShowAd();
+        }
+
+
         public void ShowAd() => ShowAd(false);
         public void ShowAd(bool requestNew)
         {
@@ -79,6 +89,7 @@ namespace Assets.FUGAS.Ads
                     RequestAdLoad();
             }
         }
+
 
         #region Clone
 
@@ -121,14 +132,6 @@ namespace Assets.FUGAS.Ads
                 if (OnAdClosed != null)
                 {
                     OnAdClosed(args, args);
-                }
-            };
-
-            instance.OnAdLeavingApplication += (sender, args) =>
-            {
-                if (OnAdLeavingApplication != null)
-                {
-                    OnAdLeavingApplication(args, args);
                 }
             };
         }

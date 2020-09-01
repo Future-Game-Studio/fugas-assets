@@ -1,4 +1,5 @@
 ﻿using Assets.FUGAS.Ads;
+using Assets.FUGAS.Ads.Scripts;
 using UnityEngine;
 using UnityEngine.UI;
 

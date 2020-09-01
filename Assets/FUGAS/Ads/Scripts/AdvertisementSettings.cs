@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Assets.FUGAS.Ads
+namespace Assets.FUGAS.Ads.Scripts
 {
     [CreateAssetMenu(fileName = "Advertisement Settings", menuName = "FUGAS/Ads/Advertisement Settings", order = 1)]
     public class AdvertisementSettings : ScriptableObject

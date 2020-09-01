@@ -1,49 +1,56 @@
 ﻿using System;
-using Assets.FUGAS.Ads.Helpers;
+using Assets.FUGAS.Ads.Scripts.Helpers;
 using GoogleMobileAds.Api;
 using UnityEngine;
 
-namespace Assets.FUGAS.Ads
+namespace Assets.FUGAS.Ads.Scripts
 {
-    public class BannerAdScript : MonoBehaviour, IAdProvider
+    public class InterstitialAdScript : MonoBehaviour, IAdProvider
     {
         public AdvertisementSettings Settings;
 
-        private BannerView _view;
+        private InterstitialAd _view;
         private string _isTest;
+        private bool _viewUsed;
         private Action<AdRequest.Builder> _configuringAdRequest;
-        private Action<BannerView> _configuringAdView;
+        private Action<InterstitialAd> _configuringAdView;
 
-        public void Start()
+        void Start()
         {
             AdMobInitializer.EnsureReady();
-            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<BannerAdScript>();
-            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<BannerAdScript, BannerView>();
+            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<InterstitialAdScript>();
+            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<InterstitialAdScript, InterstitialAd>();
 
             string testUnitId;
 #if UNITY_ANDROID
-            testUnitId = "ca-app-pub-3940256099942544/6300978111";
+            testUnitId = "ca-app-pub-3940256099942544/1033173712";
 #elif UNITY_IPHONE
-            testUnitId = "ca-app-pub-3940256099942544/2934735716";
+            testUnitId = "ca-app-pub-3940256099942544/4411468910";
 #else
             testUnitId = "unexpected_platform";
 #endif
             var settings = Settings;
 
             _isTest = AdUtils.IsTestMode(settings.TestMode)
-                ? testUnitId // Google's Sample TestId 
-                : settings.BannerUnitId;
+                ? testUnitId // Google's Sample TestId
+                : settings.InterstitialUnitId;
             RequestAdLoad();
         }
 
-        public BannerView GetView() => _view;
+        public InterstitialAd GetView() => _view;
 
         public void RequestAdLoad()
         {
+            if (!_viewUsed && _view != default && _view.IsLoaded())
+            {
+                // acts like cached ad => less data usage
+                return;
+            }
+
             // cleanup before reusing
             _view?.Destroy();
-
-            _view = new BannerView(_isTest, AdSize.Banner, AdPosition.Bottom);
+            _viewUsed = false;
+            _view = new InterstitialAd(_isTest);
 
             BindEvents();
             _configuringAdView?.Invoke(_view);
@@ -52,22 +59,25 @@ namespace Assets.FUGAS.Ads
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
             var request = builder.Build();
-
-            // Load the banner with the request.
+            // Load the interstitial with the request.
             _view.LoadAd(request);
         }
 
+        public void OnDestroy()
+        {
+            _view?.Destroy();
+        }
+         
         public void ShowAd() => ShowAd(false);
         public void ShowAd(bool requestNew)
         {
-            _view.Show();
-            if (requestNew)
-                RequestAdLoad();
-        }
-
-        void OnDestroy()
-        {
-            _view?.Destroy();
+            if (_view.IsLoaded())
+            {
+                _viewUsed = true;
+                _view.Show();
+                if (requestNew)
+                    RequestAdLoad();
+            }
         }
 
         #region Clone
