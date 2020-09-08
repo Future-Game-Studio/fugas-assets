@@ -83,7 +83,6 @@ namespace Assets.FUGAS.Ads.Scripts
         #region Clone
 
         public event EventHandler<EventArgs> OnAdLoaded;
-
         public event EventHandler<AdErrorEventArgs> OnAdFailedToLoad;
         public event EventHandler<EventArgs> OnAdOpening;
         public event EventHandler<EventArgs> OnAdClosed;
@@ -92,45 +91,16 @@ namespace Assets.FUGAS.Ads.Scripts
         private void BindEvents()
         {
             var instance = _view;
-            instance.OnAdLoaded += (sender, args) =>
-            {
-                if (OnAdLoaded != null)
-                {
-                    OnAdLoaded(args, args);
-                }
-            };
+            instance.OnAdLoaded += (sender, args) => OnAdLoaded?.Invoke(this, args);
 
-            instance.OnAdFailedToLoad += (sender, args) =>
-            {
-                if (OnAdFailedToLoad != null)
-                {
-                    OnAdFailedToLoad(this, new AdErrorEventArgs { Message = args.Message });
-                }
-            };
+            instance.OnAdFailedToLoad +=
+                (sender, args) => OnAdFailedToLoad?.Invoke(this, new AdErrorEventArgs { Message = args.Message });
 
-            instance.OnAdOpening += (sender, args) =>
-            {
-                if (OnAdOpening != null)
-                {
-                    OnAdOpening(args, args);
-                }
-            };
+            instance.OnAdOpening += (sender, args) => OnAdOpening?.Invoke(this, args);
 
-            instance.OnAdClosed += (sender, args) =>
-            {
-                if (OnAdClosed != null)
-                {
-                    OnAdClosed(args, args);
-                }
-            };
+            instance.OnAdClosed += (sender, args) => OnAdClosed?.Invoke(this, args);
 
-            instance.OnAdLeavingApplication += (sender, args) =>
-            {
-                if (OnAdLeavingApplication != null)
-                {
-                    OnAdLeavingApplication(args, args);
-                }
-            };
+            instance.OnAdLeavingApplication += (sender, args) => OnAdLeavingApplication?.Invoke(this, args);
         }
 
         #endregion
