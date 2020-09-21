@@ -18,7 +18,12 @@ namespace Assets.FUGAS.Ads.Scripts
         /// <summary>
         /// Creates a request to load advertisement
         /// </summary>
-        void RequestAdLoad();
+        void CreateAdRequest();
+
+        /// <summary>
+        /// Loads ad using request
+        /// </summary>
+        void LoadAd();
 
         /// <summary>
         /// Invokes ad view and requests new ad if used

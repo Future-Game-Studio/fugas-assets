@@ -14,6 +14,7 @@ namespace Assets.FUGAS.Ads.Scripts
         private bool _viewUsed;
         private Action<AdRequest.Builder> _configuringAdRequest;
         private Action<InterstitialAd> _configuringAdView;
+        private AdRequest _request;
 
         void Start()
         {
@@ -34,12 +35,13 @@ namespace Assets.FUGAS.Ads.Scripts
             _isTest = AdUtils.IsTestMode(settings.TestMode)
                 ? testUnitId // Google's Sample TestId
                 : settings.InterstitialUnitId;
-            RequestAdLoad();
+            CreateAdRequest();
+            LoadAd();
         }
 
         public InterstitialAd GetView() => _view;
 
-        public void RequestAdLoad()
+        public void CreateAdRequest()
         {
             if (!_viewUsed && _view != default && _view.IsLoaded())
             {
@@ -58,25 +60,39 @@ namespace Assets.FUGAS.Ads.Scripts
             // Create an empty ad request.
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
-            var request = builder.Build();
+            _request = builder.Build();
+            LoadAd();
+        }
+
+        public void LoadAd()
+        {
+            if (_request == default)
+                CreateAdRequest();
             // Load the interstitial with the request.
-            _view.LoadAd(request);
+            _view.LoadAd(_request);
         }
 
         public void OnDestroy()
         {
             _view?.Destroy();
         }
-         
+
         public void ShowAd() => ShowAd(false);
         public void ShowAd(bool requestNew)
         {
-            if (_view.IsLoaded())
+            var retractor = 5;
+            while (retractor > 0 && !_view.IsLoaded())
             {
-                _viewUsed = true;
-                _view.Show();
-                if (requestNew)
-                    RequestAdLoad();
+                retractor--;
+                LoadAd();
+            }
+
+            _viewUsed = true;
+            _view.Show();
+            if (requestNew)
+            {
+                CreateAdRequest();
+                LoadAd();
             }
         }
 

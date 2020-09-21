@@ -14,6 +14,7 @@ namespace Assets.FUGAS.Ads.Scripts
         private Action<AdRequest.Builder> _configuringAdRequest;
         private Action<RewardedAd> _configuringAdView;
         private bool _viewUsed;
+        private AdRequest _request;
 
         public void Start()
         {
@@ -33,13 +34,13 @@ namespace Assets.FUGAS.Ads.Scripts
 
             _isTest = AdUtils.IsTestMode(settings.TestMode)
                 ? testUnitId // Google's Sample TestId
-                : settings.RewardedUnitId; 
-            RequestAdLoad();
+                : settings.RewardedUnitId;
+            CreateAdRequest();
         }
-         
+
         public RewardedAd GetView() => _view;
 
-        public void RequestAdLoad()
+        public void CreateAdRequest()
         {
             if (!_viewUsed && _view != default && _view.IsLoaded())
             {
@@ -57,9 +58,8 @@ namespace Assets.FUGAS.Ads.Scripts
             // Create an empty ad request.
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
-            var request = builder.Build();
-            // Load the rewarded ad with the request.
-            _view.LoadAd(request);
+            _request = builder.Build();
+            LoadAd();
         }
 
         private void HandleUserEarnedReward(object sender, Reward e)
@@ -77,16 +77,29 @@ namespace Assets.FUGAS.Ads.Scripts
             ShowAd();
         }
 
-
-        public void ShowAd() => ShowAd(false);
+        public void LoadAd()
+        {
+            if (_request == default) 
+                CreateAdRequest();
+            // Load the rewarded ad with the request.
+            _view.LoadAd(_request);
+        }
+        public void ShowAd() => ShowAd(true);
         public void ShowAd(bool requestNew)
         {
-            if (_view.IsLoaded())
+            var retractor = 5;
+            while (retractor > 0 && !_view.IsLoaded())
             {
-                _viewUsed = true;
-                _view.Show();
-                if (requestNew)
-                    RequestAdLoad();
+                retractor--;
+                LoadAd();
+            }
+
+            _viewUsed = true;
+            _view.Show();
+            if (requestNew)
+            {
+                CreateAdRequest();
+                LoadAd();
             }
         }
 
@@ -97,6 +110,7 @@ namespace Assets.FUGAS.Ads.Scripts
         public event EventHandler<AdErrorEventArgs> OnAdFailedToLoad;
         public event EventHandler<EventArgs> OnAdOpening;
         public event EventHandler<EventArgs> OnAdClosed;
+        [Obsolete]
         public event EventHandler<EventArgs> OnAdLeavingApplication;
 
         private void BindEvents()
