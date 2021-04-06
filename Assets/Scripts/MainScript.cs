@@ -1,5 +1,4 @@
-﻿using Assets.FUGAS.Ads;
-using Assets.FUGAS.Ads.Scripts;
+﻿using Assets.FUGAS.Ads.Scripts;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,7 +23,7 @@ namespace Assets.Scripts
         void Update()
         {
             levelCaption.text = $"Level: {_currentLevel}";
-            rewardCaption.text = $"Reward: {_rewardType} {_rewardValue}";
+            rewardCaption.text = $"Reward: {_rewardType} {_rewardValue}"; 
         }
 
         public void OnNextLevelClick()
@@ -47,7 +46,7 @@ namespace Assets.Scripts
             var ad = FindObjectOfType<RewardedAdScript>();
             if (ad != default)
             {
-                var view = ad.GetView(); 
+                var view = ad.GetView();
                 view.OnUserEarnedReward += (s, e) =>
                 {
                     var reward = view.GetRewardItem();

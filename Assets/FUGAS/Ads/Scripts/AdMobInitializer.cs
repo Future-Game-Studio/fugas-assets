@@ -39,14 +39,14 @@ namespace Assets.FUGAS.Ads.Scripts
                         .SetTestDeviceIds(deviceIds).build();
 
                 MobileAds.SetRequestConfiguration(requestConfiguration);
-                
+
                 // here we can override above settings for each client
                 defaultRequestConfiguration = builder =>
-                { 
-                     builder.AddTestDevice(AdRequest.TestDeviceSimulator)
-                        .AddKeyword("unity-admob-sample")
-                        .TagForChildDirectedTreatment(false)
-                        .AddExtra("color_bg", "9B30FF"); 
+                {
+                    builder.AddTestDevice(AdRequest.TestDeviceSimulator)
+                       .AddKeyword("unity-admob-sample")
+                       .TagForChildDirectedTreatment(false)
+                       .AddExtra("color_bg", "9B30FF");
                 };
             }
             _requestConfigurationMap = new Dictionary<Type, Action<AdRequest.Builder>>
@@ -109,13 +109,13 @@ namespace Assets.FUGAS.Ads.Scripts
             EnsureReady();
         }
 
-        public Action<AdRequest.Builder> ConfigureAdRequestFor<T>()
+        public Action<AdRequest.Builder> ConfigureAdRequestFor<T>() where T : IAdProvider
         {
             var t = typeof(T);
             return _requestConfigurationMap.ContainsKey(t) ? _requestConfigurationMap[t] : x => { };
         }
 
-        public Action<TView> ConfigureViewFor<T, TView>()
+        public Action<TView> ConfigureViewFor<T, TView>() where T : IAdProvider
         {
             var t = typeof(T);
             return _viewConfiguratorMap.ContainsKey(t) ?
