@@ -1,4 +1,5 @@
 ﻿using System;
+using Assets.FUGAS.Ads.Scripts.Abstractions;
 using Assets.FUGAS.Ads.Scripts.Helpers;
 using GoogleMobileAds.Api;
 using UnityEngine;
@@ -16,11 +17,9 @@ namespace Assets.FUGAS.Ads.Scripts
         private bool _viewUsed;
         private AdRequest _request;
 
-        public void Start()
+        public void Awake()
         {
             AdMobInitializer.EnsureReady();
-            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<RewardedAdScript>();
-            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<RewardedAdScript, RewardedAd>();
 
             string testUnitId;
 #if UNITY_ANDROID
@@ -35,10 +34,14 @@ namespace Assets.FUGAS.Ads.Scripts
             _isTest = AdUtils.IsTestMode(settings.TestMode)
                 ? testUnitId // Google's Sample TestId
                 : settings.RewardedUnitId;
-            CreateAdRequest();
         }
-
+        private void Start()
+        {
+            CreateAdRequest();
+            LoadAd();
+        }
         public RewardedAd GetView() => _view;
+        public bool IsReady => _view != default && !_viewUsed;
 
         public void CreateAdRequest()
         {
@@ -47,6 +50,9 @@ namespace Assets.FUGAS.Ads.Scripts
                 // acts like cached ad => less data usage
                 return;
             }
+            _viewUsed = false;
+            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<RewardedAdScript>();
+            _configuringAdView = AdMobInitializer.Instance.ConfigureView<RewardedAd>();
             _view = new RewardedAd(_isTest);
 
             // Called when the user should be rewarded for interacting with the ad.
@@ -59,7 +65,6 @@ namespace Assets.FUGAS.Ads.Scripts
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
             _request = builder.Build();
-            LoadAd();
         }
 
         private void HandleUserEarnedReward(object sender, Reward e)
@@ -79,7 +84,7 @@ namespace Assets.FUGAS.Ads.Scripts
 
         public void LoadAd()
         {
-            if (_request == default) 
+            if (_request == default)
                 CreateAdRequest();
             // Load the rewarded ad with the request.
             _view.LoadAd(_request);
@@ -106,25 +111,30 @@ namespace Assets.FUGAS.Ads.Scripts
 
         #region Clone
 
+#pragma warning disable 67
         public event EventHandler<EventArgs> OnAdLoaded;
         public event EventHandler<AdErrorEventArgs> OnAdFailedToLoad;
         public event EventHandler<EventArgs> OnAdOpening;
         public event EventHandler<EventArgs> OnAdClosed;
         [Obsolete]
         public event EventHandler<EventArgs> OnAdLeavingApplication;
+#pragma warning restore 67
 
         private void BindEvents()
         {
             var instance = _view;
 
-            instance.OnAdLoaded += (sender, args) => OnAdLoaded?.Invoke(this, args);
+            instance.OnAdLoaded += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdLoaded?.Invoke(this, args));
 
             instance.OnAdFailedToLoad += (sender, args) =>
-                OnAdFailedToLoad?.Invoke(this, new AdErrorEventArgs { Message = args.Message });
+                SyncContext.RunOnUnityThread(() => OnAdFailedToLoad?.Invoke(this, new AdErrorEventArgs { Message = args.Message }));
 
-            instance.OnAdOpening += (sender, args) => OnAdOpening?.Invoke(this, args);
+            instance.OnAdOpening += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdOpening?.Invoke(this, args));
 
-            instance.OnAdClosed += (sender, args) => OnAdClosed?.Invoke(this, args);
+            instance.OnAdClosed += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdClosed?.Invoke(this, args));
         }
 
         #endregion

@@ -1,0 +1,62 @@
+using System;
+using UnityEngine;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
+namespace Assets.FUGAS.Ads.Scripts
+{
+    /// <summary> 
+    /// Adopted from <see href="https://forum.unity.com/threads/can-only-be-called-from-the-main-thread.622948/">
+    /// </summary>
+    public class SyncContext : MonoBehaviour
+    {
+        public static TaskScheduler unityTaskScheduler;
+        public static int unityThread;
+        public static SynchronizationContext unitySynchronizationContext;
+        static public Queue<Action> runInUpdate = new Queue<Action>();
+
+
+        public void Awake()
+        {
+            unitySynchronizationContext = SynchronizationContext.Current;
+            unityThread = Thread.CurrentThread.ManagedThreadId;
+            unityTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+        }
+        public static bool isOnUnityThread => unityThread == Thread.CurrentThread.ManagedThreadId;
+
+
+        public static void RunOnUnityThread(Action action)
+        {
+            // is this right?
+            if (unityThread == Thread.CurrentThread.ManagedThreadId)
+            {
+                action();
+            }
+            else
+            {
+                lock (runInUpdate)
+                {
+                    runInUpdate.Enqueue(action);
+                }
+
+            }
+        }
+
+
+        private void Update()
+        {
+            while (runInUpdate.Count > 0)
+            {
+                Action action = null;
+                lock (runInUpdate)
+                {
+                    if (runInUpdate.Count > 0)
+                        action = runInUpdate.Dequeue();
+                }
+                action?.Invoke();
+            }
+
+        }
+    }
+}

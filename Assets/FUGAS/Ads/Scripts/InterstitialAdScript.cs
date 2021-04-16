@@ -1,4 +1,5 @@
 ﻿using System;
+using Assets.FUGAS.Ads.Scripts.Abstractions;
 using Assets.FUGAS.Ads.Scripts.Helpers;
 using GoogleMobileAds.Api;
 using UnityEngine;
@@ -16,11 +17,9 @@ namespace Assets.FUGAS.Ads.Scripts
         private Action<InterstitialAd> _configuringAdView;
         private AdRequest _request;
 
-        void Start()
+        void Awake()
         {
             AdMobInitializer.EnsureReady();
-            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<InterstitialAdScript>();
-            _configuringAdView = AdMobInitializer.Instance.ConfigureViewFor<InterstitialAdScript, InterstitialAd>();
 
             string testUnitId;
 #if UNITY_ANDROID
@@ -35,11 +34,14 @@ namespace Assets.FUGAS.Ads.Scripts
             _isTest = AdUtils.IsTestMode(settings.TestMode)
                 ? testUnitId // Google's Sample TestId
                 : settings.InterstitialUnitId;
+        }
+        private void Start()
+        {
             CreateAdRequest();
             LoadAd();
         }
-
         public InterstitialAd GetView() => _view;
+        public bool IsReady => _view != default && !_viewUsed;
 
         public void CreateAdRequest()
         {
@@ -51,6 +53,11 @@ namespace Assets.FUGAS.Ads.Scripts
 
             // cleanup before reusing
             _view?.Destroy();
+
+            // reconfigure that stuff
+            _configuringAdRequest = AdMobInitializer.Instance.ConfigureAdRequestFor<InterstitialAdScript>();
+            _configuringAdView = AdMobInitializer.Instance.ConfigureView<InterstitialAd>();
+
             _viewUsed = false;
             _view = new InterstitialAd(_isTest);
 
@@ -61,7 +68,6 @@ namespace Assets.FUGAS.Ads.Scripts
             var builder = new AdRequest.Builder();
             _configuringAdRequest?.Invoke(builder);
             _request = builder.Build();
-            LoadAd();
         }
 
         public void LoadAd()
@@ -98,25 +104,31 @@ namespace Assets.FUGAS.Ads.Scripts
 
         #region Clone
 
+#pragma warning disable 67
         public event EventHandler<EventArgs> OnAdLoaded;
         public event EventHandler<AdErrorEventArgs> OnAdFailedToLoad;
         public event EventHandler<EventArgs> OnAdOpening;
         public event EventHandler<EventArgs> OnAdClosed;
         public event EventHandler<EventArgs> OnAdLeavingApplication;
+#pragma warning restore 67
 
         private void BindEvents()
         {
             var instance = _view;
-            instance.OnAdLoaded += (sender, args) => OnAdLoaded?.Invoke(this, args);
+            instance.OnAdLoaded += (sender, args) =>
+               SyncContext.RunOnUnityThread(() => OnAdLoaded?.Invoke(this, args));
 
-            instance.OnAdFailedToLoad +=
-                (sender, args) => OnAdFailedToLoad?.Invoke(this, new AdErrorEventArgs { Message = args.Message });
+            instance.OnAdFailedToLoad += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdFailedToLoad?.Invoke(this, new AdErrorEventArgs { Message = args.Message }));
 
-            instance.OnAdOpening += (sender, args) => OnAdOpening?.Invoke(this, args);
+            instance.OnAdOpening += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdOpening?.Invoke(this, args));
 
-            instance.OnAdClosed += (sender, args) => OnAdClosed?.Invoke(this, args);
+            instance.OnAdClosed += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdClosed?.Invoke(this, args));
 
-            instance.OnAdLeavingApplication += (sender, args) => OnAdLeavingApplication?.Invoke(this, args);
+            instance.OnAdLeavingApplication += (sender, args) =>
+                SyncContext.RunOnUnityThread(() => OnAdLeavingApplication?.Invoke(this, args));
         }
 
         #endregion

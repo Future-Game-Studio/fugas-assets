@@ -1,7 +1,7 @@
 ﻿using System;
 using GoogleMobileAds.Api;
 
-namespace Assets.FUGAS.Ads.Scripts
+namespace Assets.FUGAS.Ads.Scripts.Abstractions
 {
     public interface IAdProvider
     {
@@ -16,6 +16,11 @@ namespace Assets.FUGAS.Ads.Scripts
         event EventHandler<EventArgs> OnAdLeavingApplication;
 
         /// <summary>
+        /// Returns <c>true<c> if ad view is ready to be shown
+        /// </summary>
+        bool IsReady { get; }
+        
+        /// <summary>
         /// Creates a request to load advertisement
         /// </summary>
         void CreateAdRequest();
@@ -26,7 +31,7 @@ namespace Assets.FUGAS.Ads.Scripts
         void LoadAd();
 
         /// <summary>
-        /// Invokes ad view and requests new ad if used
+        /// Invokes ad view and requests new ad if view was used (shown)
         /// </summary>
         void ShowAd(bool requestNew);
 

@@ -1,23 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
+using Assets.FUGAS.Ads.Scripts.Abstractions;
 using GoogleMobileAds.Api;
 using UnityEngine;
 
 namespace Assets.FUGAS.Ads.Scripts
 {
-    public class AdMobInitializer : MonoBehaviour
+    public partial class AdMobInitializer : MonoBehaviour
     {
         [HideInInspector]
-        public bool Ready;
-        private Dictionary<Type, Action<AdRequest.Builder>> _requestConfigurationMap;
-        private Dictionary<Type, Action<object>> _viewConfiguratorMap;
-        public static AdMobInitializer Instance { get; private set; }
+        public bool Ready { get; private set; }
+        private Action<AdRequest.Builder> _defaultRequestConfiguration;
+        private Dictionary<Type, Action<AdRequest.Builder>> _requestConfigurationMap
+        = new Dictionary<Type, Action<AdRequest.Builder>> { };
+        private Dictionary<Type, Action<object>> _viewConfiguratorMap
+        = new Dictionary<Type, Action<object>> { };
+        private static AdMobInitializer _instance;
+        private bool _adMobReady;
+
+        public static AdMobInitializer Instance
+        {
+            get
+            {
+                if (!_instance)
+                    EnsureReady();
+                return _instance;
+            }
+            private set => _instance = value;
+        }
 
         #region Configure
 
         private void Initialize()
         {
-            Action<AdRequest.Builder> defaultRequestConfiguration = _ => { };
+            _defaultRequestConfiguration ??=
+               // here we can override settings for each client
+               builder =>
+                {
+                    builder.AddTestDevice(AdRequest.TestDeviceSimulator)
+                       .AddKeyword("unity-admob-sample")
+                       .TagForChildDirectedTreatment(false)
+                       .AddExtra("color_bg", "9B30FF");
+                };
 
             if (Debug.isDebugBuild)
             {
@@ -40,43 +64,8 @@ namespace Assets.FUGAS.Ads.Scripts
 
                 MobileAds.SetRequestConfiguration(requestConfiguration);
 
-                // here we can override above settings for each client
-                defaultRequestConfiguration = builder =>
-                {
-                    builder.AddTestDevice(AdRequest.TestDeviceSimulator)
-                       .AddKeyword("unity-admob-sample")
-                       .TagForChildDirectedTreatment(false)
-                       .AddExtra("color_bg", "9B30FF");
-                };
             }
-            _requestConfigurationMap = new Dictionary<Type, Action<AdRequest.Builder>>
-            {
-                // or implement your request configuration here
-                {typeof(BannerAdScript), defaultRequestConfiguration},
-                {typeof(InterstitialAdScript), defaultRequestConfiguration},
-                {typeof(RewardedAdScript), defaultRequestConfiguration},
-            };
 
-            _viewConfiguratorMap = new Dictionary<Type, Action<object>>
-            {
-                {typeof(BannerAdScript),  builder =>
-                {
-                    // implement your view configuration here
-                    // builder as BannerView
-                }},
-                {typeof(InterstitialAdScript), builder =>
-                {
-                    // implement your view configuration here
-                    // builder as InterstitialAd
-                }},
-                {typeof(RewardedAdScript), builder =>
-                {
-                    // implement your view configuration here
-                    // builder as RewardedAd
-                }},
-            };
-
-            // Initialize the Google Mobile Ads SDK.
             MobileAds.Initialize(_ => { });
 
             Ready = true;
@@ -88,25 +77,59 @@ namespace Assets.FUGAS.Ads.Scripts
 
         public static void EnsureReady()
         {
-            if (!Instance.Ready)
-                Instance.Initialize();
+            Configure(default);
         }
+
+        public static void Configure(Action<IAdRequestConfiguration> builder)
+        {
+            if (!_instance)
+            {
+                // Loads AdsSource object from Assets/FUGAS/Resources
+                var prefab = Resources.Load<AdMobInitializer>("AdsSource");
+                // another way to set instance, alternative
+                _instance = Instantiate(prefab);
+                _instance.gameObject.AddComponent<SyncContext>();
+            }
+
+            if (!_instance)
+            {
+                Debug.LogError("FUGAS.ADS: Can't find Assets/FUGAS/Resources/AdsSource prefab");
+                Debug.LogError("FUGAS.ADS: AdMob Initialization failed. Try to reimport FUGAS Ads package.");
+                return;
+            }
+
+            if (builder != default)
+            {
+                // clear previous values for convinience
+                _instance.Ready = false;
+                _instance._requestConfigurationMap.Clear();
+                _instance._viewConfiguratorMap.Clear();
+
+                var configurator = new AdRequestConfiguration(_instance);
+                builder(configurator);
+                _instance.Initialize();
+                return;
+            }
+
+            if (!_instance.Ready)
+            {
+                _instance.Initialize();
+            }
+        }
+
 
         public void Awake()
         {
-            if (Instance is null)
+            if (_instance is null)
             {
-                Instance = this;
+                _instance = this;
+                _instance.gameObject.AddComponent<SyncContext>();
+                EnsureReady();
             }
             else
             {
                 DestroyImmediate(gameObject);
             }
-        }
-
-        public void Start()
-        {
-            EnsureReady();
         }
 
         public Action<AdRequest.Builder> ConfigureAdRequestFor<T>() where T : IAdProvider
@@ -115,14 +138,15 @@ namespace Assets.FUGAS.Ads.Scripts
             return _requestConfigurationMap.ContainsKey(t) ? _requestConfigurationMap[t] : x => { };
         }
 
-        public Action<TView> ConfigureViewFor<T, TView>() where T : IAdProvider
+        public Action<TView> ConfigureView<TView>()
         {
-            var t = typeof(T);
+            var t = typeof(TView);
             return _viewConfiguratorMap.ContainsKey(t) ?
                 (Action<TView>)(b => _viewConfiguratorMap[t](b))
                 : x => { };
         }
 
         #endregion
+
     }
 }
