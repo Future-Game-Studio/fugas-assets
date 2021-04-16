@@ -23,6 +23,7 @@
 
 7. Profit!
 
+
 #### Example how to configure and listen to ad events:
 
 ```csharp
@@ -95,7 +96,7 @@ A: You can read more here - [link](https://developers.google.com/admob/android/q
 
 A: You can clone this repo and build test app or view [MainScript.cs](https://github.com/Future-Game-Studio/fugas-assets/blob/fugas-ads/Assets/Scripts/MainScript.cs)
 
-#### **Q: I want to change a banner position **
+#### **Q: I want to change a banner position**
 
 A: Use `AdMobInitializer.Configure` and configure `BannerAd` view with `SetPosition` method.
 
