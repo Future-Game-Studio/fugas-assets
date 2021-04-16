@@ -91,6 +91,10 @@ A: Try to import [Google Ads plugin 5.4.0](https://github.com/googleads/googlead
 
 A: You can read more here - [link](https://developers.google.com/admob/android/quick-start#select_an_ad_format).
 
+#### **Q: Can you give me more examples?**
+
+A: You can clone this repo and build test app or view [MainScript.cs](https://github.com/Future-Game-Studio/fugas-assets/blob/fugas-ads/Assets/Scripts/MainScript.cs)
+
 #### **Q: I want to change a banner position **
 
 A: Use `AdMobInitializer.Configure` and configure `BannerAd` view with `SetPosition` method.
